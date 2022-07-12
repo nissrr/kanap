@@ -1,52 +1,80 @@
+const pannier = document.getElementById('cart__items');
+let productLocalStorage = JSON.parse(localStorage.getItem('produit'));
 
- const pannier = document.getElementById('cart__items');
- let productLocalStorage = JSON.parse(localStorage.getItem('produit'));
 
  // Affichage des produit dans le panier
  if(productLocalStorage === null){
     let pannierVide = `le panier est vide`;
-    pannier.innerHTML = panierVide;
+    pannier.innerHTML = pannierVide;
  }
  else{
-  for(k = 0; k < productLocalStorage.length ; k++){
-    pannier.innerHTML += `
-      <article class="cart__item" data-id="{product-ID}" data-color="{product-color}">
-      <div class="cart__item__img">
-        <img src="${productLocalStorage[k].imageUrl}" alt="Photographie d'un canapé">
-      </div>
-      <div class="cart__item__content">
-        <div class="cart__item__content__description">
-          <h2>${productLocalStorage[k].nomProduit}</h2>
-          <p>${productLocalStorage[k].colorProduit}</p>
-          <p>${productLocalStorage[k].prixProduit} €</p>
-        </div>
-        <div class="cart__item__content__settings">
-          <div class="cart__item__content__settings__quantity">
-            <p>Qté : </p>
-            <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value=${productLocalStorage[k].quantity}>
+  for(let k = 0; k < productLocalStorage.length ; k++){
+    let id = productLocalStorage[k].idProduit
+    fetch(`http://localhost:3000/api/products/${id}`)
+    .then(res => res.json())
+    .then(data => {
+        pannier.innerHTML += `
+          <article class="cart__item" data-id="${productLocalStorage[k].idProduit}" data-color="{product-color}">
+          <div class="cart__item__img">
+            <img src=${data.imageUrl} alt="Photographie d'un canapé">
           </div>
-          <div class="cart__item__content__settings__delete">
-            <p class="deleteItem">Supprimer</p>
+          <div class="cart__item__content">
+            <div class="cart__item__content__description">
+              <h2>${data.name}</h2>
+              <p>${productLocalStorage[k].colorProduit}</p>
+              <p>${data.price} €</p>
+            </div>
+            <div class="cart__item__content__settings">
+              <div class="cart__item__content__settings__quantity">
+                <p>Qté : </p>
+                <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value=${productLocalStorage[k].quantity}>
+              </div>
+              <div class="cart__item__content__settings__delete">
+                <p class="deleteItem">Supprimer</p>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </article> `;
- }
-};
+        </article> `;
 
-//Supprimer un article du panier
-let DeleteItem = Array.from(document.querySelectorAll(".deleteItem"));
-for(let s=0; s < DeleteItem.length ; s++){
-  DeleteItem[s].addEventListener('click', () => {
-    productLocalStorage.splice([s], 1)
-    console.log(productLocalStorage)
+        // Calcul du prix Total
+        let prixTotalCalcul = [];   
+         for(let i = 0; i < productLocalStorage.length; i ++){
+            let prixArticle = data.price * productLocalStorage[i].quantity;
+            prixTotalCalcul.push(prixArticle);
+          }
+        let prixTotal = prixTotalCalcul.reduce((acc, cur) => acc + cur, 0);
+        document.getElementById('totalPrice').innerHTML = prixTotal;
 
-    localStorage.setItem("produit", JSON.stringify(productLocalStorage))
+        //Changer les quantités des articles dynamiquement depuis le panier
+        let changeQuantity = Array.from(document.querySelectorAll('.itemQuantity'));
+        console.log(changeQuantity)
+        for(let q= 0; q < changeQuantity.length; q++){
+        changeQuantity[q].addEventListener('change', () => {
+            let quantityArticle = changeQuantity[q].value;
+            productLocalStorage[q].quantity = quantityArticle;
+            
+            localStorage.setItem("produit", JSON.stringify(productLocalStorage));
 
-    window.alert("L'article a bien été supprimé du panier !")
+            location.reload()
+        })
+        };
 
-    location.reload()
-  })
+        //Supprimer un article du panier
+        let DeleteItem = Array.from(document.querySelectorAll(".deleteItem"));
+        for(let s=0; s < DeleteItem.length ; s++){
+          DeleteItem[s].addEventListener('click', () => {
+            productLocalStorage.splice([s], 1)
+            console.log(productLocalStorage)
+
+            localStorage.setItem("produit", JSON.stringify(productLocalStorage))
+
+            window.alert("L'article a bien été supprimé du panier !")
+
+            location.reload()
+          })
+        }
+    }
+    )}
 }
 
 //Changer les quantités des articles dynamiquement depuis le panier
@@ -54,18 +82,18 @@ let changeQuantity = Array.from(document.querySelectorAll('.itemQuantity'));
 console.log(changeQuantity)
 for(let q= 0; q < changeQuantity.length; q++){
 changeQuantity[q].addEventListener('change', () => {
-    let quantityArticle = changeQuantity[q].value;
-    productLocalStorage[q].quantity = quantityArticle;
-    
-    localStorage.setItem("produit", JSON.stringify(productLocalStorage));
+  let quantityArticle = changeQuantity[q].value;
+  productLocalStorage[q].quantity = quantityArticle;
+  
+  localStorage.setItem("produit", JSON.stringify(productLocalStorage));
 
-    location.reload()
+  location.reload()
 })
 };
 
 //Calcul des Quantités
 let TotalQuantityCalcul = [];
-for(q = 0; q < productLocalStorage.length; q ++){
+for( let q = 0; q < productLocalStorage.length; q ++){
     TotalQuantityCalcul.push((+productLocalStorage[q].quantity))
 }
 let TotalQuantity = TotalQuantityCalcul.reduce((a, b) => 
@@ -73,18 +101,9 @@ a + b);
 document.getElementById('totalQuantity').innerHTML = TotalQuantity;
 
 
-// Calcul du prix Total
-let prixTotalCalcul = [];
-for(i = 0; i < productLocalStorage.length; i ++){
-    let prixArticle = productLocalStorage[i].prixProduit * productLocalStorage[i].quantity;
-    prixTotalCalcul.push(prixArticle);
-}
-let prixTotal = prixTotalCalcul.reduce((acc, cur) => acc + cur, 0);
-document.getElementById('totalPrice').innerHTML = prixTotal;
-
 //Création du tableau product-Id a envoyer au back end
 let products = [];
-for(j=0; j < productLocalStorage.length; j++){
+for(let j=0; j < productLocalStorage.length; j++){
   let productsID = productLocalStorage[j].idProduit;
   products.push(productsID);
 }
@@ -180,7 +199,7 @@ if(prenomControle() && nomControle() && addresseControle() && villeControle() &&
   window.location.href ="confirmation.html"
 }
 else(
-  alert('Veuillez renseigner tous les champs demandés.')
+  alert('Veuillez renseigner correctement tous les champs demandés.')
 )
 
 })
