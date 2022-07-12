@@ -47,10 +47,9 @@ let productLocalStorage = JSON.parse(localStorage.getItem('produit'));
 
         //Changer les quantités des articles dynamiquement depuis le panier
         let changeQuantity = Array.from(document.querySelectorAll('.itemQuantity'));
-        console.log(changeQuantity)
         for(let q= 0; q < changeQuantity.length; q++){
         changeQuantity[q].addEventListener('change', () => {
-            let quantityArticle = changeQuantity[q].value;
+            let quantityArticle = +changeQuantity[q].value;
             productLocalStorage[q].quantity = quantityArticle;
             
             localStorage.setItem("produit", JSON.stringify(productLocalStorage));
